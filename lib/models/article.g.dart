@@ -31,7 +31,7 @@ class _$ArticleSerializer implements StructuredSerializer<Article> {
       'parts',
       serializers.serialize(object.parts,
           specifiedType:
-              const FullType(BuiltList, const [const FullType(String)])),
+              const FullType(BuiltList, const [const FullType(int)])),
     ];
     Object? value;
     value = object.deleted;
@@ -170,8 +170,8 @@ class _$ArticleSerializer implements StructuredSerializer<Article> {
           break;
         case 'parts':
           result.parts.replace(serializers.deserialize(value,
-                  specifiedType: const FullType(
-                      BuiltList, const [const FullType(String)]))!
+                  specifiedType:
+                      const FullType(BuiltList, const [const FullType(int)]))!
               as BuiltList<Object?>);
           break;
         case 'descendants':
@@ -213,7 +213,7 @@ class _$Article extends Article {
   @override
   final String? title;
   @override
-  final BuiltList<String> parts;
+  final BuiltList<int> parts;
   @override
   final int? descendants;
 
@@ -381,9 +381,9 @@ class ArticleBuilder implements Builder<Article, ArticleBuilder> {
   String? get title => _$this._title;
   set title(String? title) => _$this._title = title;
 
-  ListBuilder<String>? _parts;
-  ListBuilder<String> get parts => _$this._parts ??= new ListBuilder<String>();
-  set parts(ListBuilder<String>? parts) => _$this._parts = parts;
+  ListBuilder<int>? _parts;
+  ListBuilder<int> get parts => _$this._parts ??= new ListBuilder<int>();
+  set parts(ListBuilder<int>? parts) => _$this._parts = parts;
 
   int? _descendants;
   int? get descendants => _$this._descendants;

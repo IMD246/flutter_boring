@@ -37,7 +37,7 @@ abstract class Article implements Built<Article, ArticleBuilder> {
 
   String? get title;
 
-  BuiltList<String> get parts;
+  BuiltList<int> get parts;
 
   int? get descendants;
 

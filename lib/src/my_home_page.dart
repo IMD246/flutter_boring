@@ -100,7 +100,7 @@ Widget _buildItemArticle(Article? article) {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            const Text("Story"),
+            Text("${article?.descendants ?? "0"} comments"),
             IconButton(
               onPressed: () async {
                 if (await canLaunchUrlString(
