@@ -1,9 +1,11 @@
 import 'dart:collection';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:to_do_app_boring/enum/enum.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../bloc/hacker_news_bloc.dart';
 import '../models/article.dart';
@@ -56,7 +58,9 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       body: StreamBuilder<UnmodifiableListView<Article?>>(
-        stream: hackernews.streamArticle,
+        stream: currentIndex == 0
+            ? hackernews.topStreamArticle
+            : hackernews.newStreamArticle,
         initialData: UnmodifiableListView([]),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
@@ -79,16 +83,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
 ListView _buildListArticle(List<Article?>? articles) {
   return ListView.builder(
+    key: const PageStorageKey(0),
     itemCount: articles?.length ?? 0,
     itemBuilder: (context, index) {
       final article = articles!.elementAt(index);
-      return _buildItemArticle(article);
+      return _buildItemArticle(article, context);
     },
   );
 }
 
-Widget _buildItemArticle(Article? article) {
+Widget _buildItemArticle(Article? article, BuildContext context) {
   return Padding(
+    key: PageStorageKey(article?.text),
     padding: const EdgeInsets.all(
       16,
     ),
@@ -97,24 +103,31 @@ Widget _buildItemArticle(Article? article) {
         article?.title ?? "Null",
       ),
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        Column(
           children: [
-            Text("${article?.descendants ?? "0"} comments"),
-            IconButton(
-              onPressed: () async {
-                if (await canLaunchUrlString(
-                  article?.url ?? "",
-                )) {
-                  await launchUrlString(article!.url!);
-                }
-              },
-              icon: const Icon(
-                Icons.launch,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Text("${article?.descendants ?? "0"} comments"),
+                IconButton(
+                  onPressed: () {
+                    if (article?.url != null) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) {
+                            return HackerNewsWebPage(url: article!.url!);
+                          },
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.launch),
+                )
+              ],
             ),
+            HackerNewsWebPageWidget(url: article?.url ?? ""),
           ],
-        )
+        ),
       ],
     ),
   );
@@ -162,6 +175,52 @@ class _LoadingWidgetState extends State<LoadingWidget>
           ),
         );
       },
+    );
+  }
+}
+
+class HackerNewsWebPageWidget extends StatelessWidget {
+  const HackerNewsWebPageWidget({super.key, required this.url});
+  final String url;
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 200,
+      child: WebView(
+        initialUrl: 'https://flutter.dev',
+        javascriptMode: JavascriptMode.unrestricted,
+        // ignore: prefer_collection_literals
+        gestureRecognizers: Set()
+          ..add(
+            Factory<VerticalDragGestureRecognizer>(
+              () => VerticalDragGestureRecognizer(),
+            ),
+          ),
+      ),
+    );
+  }
+}
+
+class HackerNewsWebPage extends StatelessWidget {
+  const HackerNewsWebPage({super.key, required this.url});
+  final String url;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Web Page"),
+      ),
+      body: WebView(
+        initialUrl: 'https://flutter.dev',
+        javascriptMode: JavascriptMode.unrestricted,
+        // ignore: prefer_collection_literals
+        gestureRecognizers: Set()
+          ..add(
+            Factory<VerticalDragGestureRecognizer>(
+              () => VerticalDragGestureRecognizer(),
+            ),
+          ),
+      ),
     );
   }
 }

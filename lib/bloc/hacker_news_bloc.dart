@@ -11,10 +11,16 @@ import 'package:to_do_app_boring/models/article.dart';
 
 class HackerNewsBloc {
   late HashMap<int, Article> _cachedArticles;
-  Stream<UnmodifiableListView<Article?>> get streamArticle =>
-      _subjectArticle.stream;
+  Stream<UnmodifiableListView<Article?>> get topStreamArticle =>
+      _topSubjectArticle.stream;
 
-  final BehaviorSubject<UnmodifiableListView<Article?>> _subjectArticle =
+  final BehaviorSubject<UnmodifiableListView<Article?>> _topSubjectArticle =
+      BehaviorSubject<UnmodifiableListView<Article>>();
+
+  Stream<UnmodifiableListView<Article?>> get newStreamArticle =>
+      _newSubjectArticle.stream;
+
+  final BehaviorSubject<UnmodifiableListView<Article?>> _newSubjectArticle =
       BehaviorSubject<UnmodifiableListView<Article>>();
 
   final _storiesTypeController = StreamController<StoriesType>();
@@ -32,31 +38,20 @@ class HackerNewsBloc {
     _cachedArticles = HashMap<int, Article>();
 
     _storiesTypeController.stream.listen((event) async {
-      if (event.name == StoriesType.news.name) {
-        _getArticlesAndUpdate(await _getIds(event));
-      } else {
-        _getArticlesAndUpdate(await _getIds(event));
-      }
+      _getArticlesAndUpdate(_topSubjectArticle, await _getIds(StoriesType.top));
+      _getArticlesAndUpdate(
+        _newSubjectArticle,
+        await _getIds(StoriesType.news),
+      );
     });
   }
-  // final _newIds = [
-  //   9129911,
-  //   9129199,
-  //   9127761,
-  //   9128141,
-  //   9128264,
-  //   9127792,
-  // ];
-  // final _bestIds = [
-  //   9127792,
-  //   9129248,
-  //   9127092,
-  //   9128367,
-  //   9038733,
-  // ];
 
   _initializeArticles() async {
-    _getArticlesAndUpdate(await _getIds(StoriesType.top));
+    _getArticlesAndUpdate(_topSubjectArticle, await _getIds(StoriesType.top));
+    _getArticlesAndUpdate(
+      _newSubjectArticle,
+      await _getIds(StoriesType.news),
+    );
   }
 
   Future<List<int>> _getIds(StoriesType storiesType) async {
@@ -73,10 +68,11 @@ class HackerNewsBloc {
 
   static const String _baseURL = 'https://hacker-news.firebaseio.com/v0/';
 
-  _getArticlesAndUpdate(List<int> ids) async {
+  _getArticlesAndUpdate(BehaviorSubject<UnmodifiableListView<Article?>> subject,
+      List<int> ids) async {
     _subjectLoading.add(true);
     await _getArticles(ids);
-    _subjectArticle.add(UnmodifiableListView(_articles));
+    subject.add(UnmodifiableListView(_articles));
     _subjectLoading.add(false);
   }
 
