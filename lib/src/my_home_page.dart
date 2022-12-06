@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:to_do_app_boring/bloc/pref_bloc.dart';
 import 'package:to_do_app_boring/enum/enum.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -20,6 +21,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int currentIndex = 0;
   final hackernews = HackerNewsBloc();
+  final prefBloc = PrefBloc();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,14 +36,16 @@ class _MyHomePageState extends State<MyHomePage> {
         currentIndex: currentIndex,
         onTap: (value) {
           if (currentIndex != value) {
-            if (currentIndex == 0) {
-              hackernews.storiesTypeSink.add(StoriesType.top);
-            } else {
-              hackernews.storiesTypeSink.add(StoriesType.news);
-            }
             setState(() {
               currentIndex = value;
             });
+            if (currentIndex == 0) {
+              hackernews.storiesTypeSink.add(StoriesType.top);
+            } else if (currentIndex == 1) {
+              hackernews.storiesTypeSink.add(StoriesType.news);
+            } else {
+              _showPrefsSheet(context, prefBloc);
+            }
           }
         },
         items: const [
@@ -55,6 +59,12 @@ class _MyHomePageState extends State<MyHomePage> {
               Icons.new_releases,
             ),
           ),
+          BottomNavigationBarItem(
+            label: "Preferences",
+            icon: Icon(
+              Icons.settings,
+            ),
+          ),
         ],
       ),
       body: StreamBuilder<UnmodifiableListView<Article?>>(
@@ -65,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             final articles = snapshot.data;
-            return _buildListArticle(articles);
+            return _buildListArticle(articles, prefBloc);
           } else {
             return Column(
               children: const [
@@ -81,18 +91,19 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-ListView _buildListArticle(List<Article?>? articles) {
+ListView _buildListArticle(List<Article?>? articles, PrefBloc prefBloc) {
   return ListView.builder(
     key: const PageStorageKey(0),
     itemCount: articles?.length ?? 0,
     itemBuilder: (context, index) {
       final article = articles!.elementAt(index);
-      return _buildItemArticle(article, context);
+      return _buildItemArticle(article, context, prefBloc);
     },
   );
 }
 
-Widget _buildItemArticle(Article? article, BuildContext context) {
+Widget _buildItemArticle(
+    Article? article, BuildContext context, PrefBloc prefBloc) {
   return Padding(
     key: PageStorageKey(article?.text),
     padding: const EdgeInsets.all(
@@ -125,7 +136,17 @@ Widget _buildItemArticle(Article? article, BuildContext context) {
                 )
               ],
             ),
-            HackerNewsWebPageWidget(url: article?.url ?? ""),
+            StreamBuilder<PrefState>(
+              stream: prefBloc.currentPrefs,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  if (snapshot.data!.showWebView) {
+                    return HackerNewsWebPageWidget(url: article?.url ?? "");
+                  }
+                }
+                return Container();
+              },
+            ),
           ],
         ),
       ],
@@ -223,4 +244,30 @@ class HackerNewsWebPage extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showPrefsSheet(BuildContext context, PrefBloc prefBloc) async {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return Scaffold(
+        body: Center(
+          child: StreamBuilder<PrefState>(
+            stream: prefBloc.currentPrefs,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Switch(
+                  value: snapshot.data!.showWebView,
+                  onChanged: (value) {
+                    prefBloc.showWebViewPref.add(value);
+                  },
+                );
+              }
+              return const Text("No thing");
+            },
+          ),
+        ),
+      );
+    },
+  );
 }
